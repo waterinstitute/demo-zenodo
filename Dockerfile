@@ -14,9 +14,9 @@ RUN apt-get update \
         apt-utils curl libcairo2-dev fonts-dejavu libfreetype6-dev \
         uwsgi-plugin-python \
     # Node.js
-    && curl -sL https://deb.nodesource.com/setup_6.x | bash - \
+    && curl -sL https://deb.nodesource.com/setup_7.x | bash - \
     && apt-get -qy install --fix-missing --no-install-recommends \
-        nodejs \
+        'nodejs=7.10.*' \
     # Slim down image
     && apt-get clean autoclean \
     && apt-get autoremove -y \
@@ -58,8 +58,10 @@ RUN pip install -e .[postgresql,elasticsearch2,all] \
     && python -O -m compileall .
 
 # Install npm dependencies and build assets.
+RUN apt-get -qy install git
 RUN zenodo npm --pinned-file /code/zenodo/package.pinned.json \
     && cd ${INVENIO_INSTANCE_PATH}/static \
+    && sed -i 's@git://@https://@g' package.json \
     && npm install \
     && cd /code/zenodo \
     && zenodo collect -v \
@@ -76,7 +78,7 @@ RUN mkdir -p /usr/local/var/data && \
     chown zenodo:zenodo /var/log/zenodo -R
 
 COPY ./docker/docker-entrypoint.sh /
-
+RUN cd /code/zenodo && python setup.py install
 USER zenodo
 VOLUME ["/code/zenodo"]
 ENTRYPOINT ["/docker-entrypoint.sh"]
